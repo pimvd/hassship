@@ -1,0 +1,11 @@
+# Example (not active: the file name ends in .disabled).
+# Rename to <name>.yaml to use it. Every file must be a LIST of automations.
+- id: example_light_at_sunset
+  alias: Example - light on at sunset
+  triggers:
+    - trigger: sun
+      event: sunset
+  actions:
+    - action: light.turn_on
+      target:
+        entity_id: light.living_room

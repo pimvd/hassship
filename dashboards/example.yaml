@@ -1,0 +1,12 @@
+# Example dashboard. Replace it with your own.
+# Register it in configuration.yaml (see docs/technical.md).
+title: Example
+views:
+  - title: Home
+    path: home
+    icon: mdi:home
+    cards:
+      - type: markdown
+        content: |
+          # Hello from hassship
+          This dashboard was sent to Home Assistant with `./deploy.sh`.

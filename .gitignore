@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.yaml
+.storage/
+.backups/
+.DS_Store
+keys/

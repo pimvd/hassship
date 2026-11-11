@@ -1,0 +1,12 @@
+# Voorbeelddashboard. Vervang dit door je eigen dashboard.
+# Registreer het in configuration.yaml (zie docs/technisch.md).
+title: Voorbeeld
+views:
+  - title: Home
+    path: home
+    icon: mdi:home
+    cards:
+      - type: markdown
+        content: |
+          # Hallo vanuit hassship
+          Dit dashboard is met `./deploy.sh` naar Home Assistant gestuurd.

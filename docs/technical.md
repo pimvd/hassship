@@ -89,32 +89,67 @@ Copy `dashboards/example.yaml` to `dashboards/<name>.yaml`, add an entry with a 
   Home Assistant.
 - `--backup` keeps the old version in `/config/dashboards/.backups/<timestamp>/`.
 
-## Deploying automations
+## Deploying automations, scripts and scenes
 ```bash
-./deploy-automations.sh [--dry-run] [--backup] [--no-reload]
+./deploy-config.sh [--dry-run] [--backup] [--no-reload] [--prune] [automations|scripts|scenes ...]
 ```
-Uploads `automations/*.yaml` to `/config/automations/` (same checks, sha256 diff and atomic
-upload as `deploy.sh`; never deletes anything). Each file must be a **list** of automations;
-ids must be unique. Files ending in `.disabled` are ignored.
+Without a type, every kind that has files is deployed. `./deploy-automations.sh` is a shortcut
+for `./deploy-config.sh ... automations`.
+
+| Kind | Local folder | On Home Assistant | Each file contains |
+|---|---|---|---|
+| Automations | `automations/` | `/config/automations/` | a **list** (`- id: ...`) |
+| Scripts | `ha-scripts/` | `/config/ha-scripts/` | a **map** keyed by script name (`my_script:`) |
+| Scenes | `ha-scenes/` | `/config/ha-scenes/` | a **list** of scenes |
+
+(The folder is `ha-scripts` because `scripts/` already holds this project's helper scripts.)
+
+Same checks, sha256 diff and atomic upload as `deploy.sh`. Script names, automation ids and
+scene ids must be unique across all files of the same kind. Files ending in `.disabled` are
+ignored. A file deleted locally stays on Home Assistant unless you use `--prune` (asks for
+confirmation; combine with `--backup` for a copy). The folder names on the server can be
+changed with `HASS_AUTOMATION_SUBDIR`, `HASS_SCRIPT_SUBDIR` and `HASS_SCENE_SUBDIR` in `.env`.
 
 ### One-time in `configuration.yaml`
-You can only use `automation:` once. If you already have
-`automation: !include automations.yaml` (UI automations), give both their own label:
+You can only use each domain key (`automation:`, `script:`, `scene:`) once, so give the UI file
+and the folder each their own label:
 ```yaml
 automation ui: !include automations.yaml
 automation manual: !include_dir_merge_list automations/
+script ui: !include scripts.yaml
+script manual: !include_dir_merge_named ha-scripts/
+scene ui: !include scenes.yaml
+scene manual: !include_dir_merge_list ha-scenes/
 ```
-Restart Home Assistant once afterwards. The script warns if the reference is missing.
-Home Assistant fails its config check if `automations/` doesn't exist, so deploy at least once
-(which creates the folder) before restarting.
-Automations created in the UI stay in `automations.yaml`; this project doesn't manage those,
-so UI changes are never overwritten.
+Restart Home Assistant once afterwards. The script warns if a reference is missing. Home
+Assistant fails its config check if a folder doesn't exist, so deploy at least once (which
+creates the folders) before restarting.
+
+### What does git own, and what does the UI own?
+Everything in `automations/`, `ha-scripts/` and `ha-scenes/` is owned by git. Don't edit those
+in the UI: scripts and scenes loaded from a folder have no edit button there, and a deploy
+overwrites manual changes on the server. Things you still create in the UI end up in
+`automations.yaml`, `scripts.yaml` and `scenes.yaml`; this project doesn't manage those.
+
+### Moving existing scripts and scenes into git
+A one-time migration, in this order (it avoids defining anything twice):
+1. Copy `scripts.yaml` and `scenes.yaml` from the server and split them into
+   `ha-scripts/<name>.yaml` (one script per file) and `ha-scenes/<name>.yaml`. Check that the
+   conversion changes nothing (reload all files and compare with the original).
+2. `./deploy-config.sh --backup --no-reload` (creates the folders).
+3. On the server: back up `scripts.yaml`, `scenes.yaml` and `configuration.yaml`; replace the
+   content of `scripts.yaml` with `{}` and of `scenes.yaml` with `[]` (otherwise everything is
+   defined twice); update `configuration.yaml` as above.
+4. Check the configuration (Developer tools > YAML) and restart Home Assistant.
+
+Entity ids stay the same (`script.<key>`, `scene.<name>`), so dashboards and automations need
+no changes.
 
 ### Automatic reload (optional)
 Set `HASS_TOKEN` (long-lived access token) and optionally `HASS_URL` in `.env`. After the
-upload the script runs the configuration check (`check_config`) and only runs
-`automation.reload` if the configuration is valid. Without a token you only upload and reload
-yourself via Developer tools > Actions > `automation.reload`.
+upload the script runs the configuration check (`check_config`) and only if it is valid runs
+`automation.reload`, `script.reload` and/or `scene.reload` (only for the kinds that changed).
+Without a token you only upload and reload yourself via Developer tools > Actions.
 
 ## pull.sh
 ```bash

@@ -1,0 +1,14 @@
+# Example (not active: the file name ends in .disabled).
+# Rename to <name>.yaml to use it. Every file is a MAP: the key is the script's name
+# (it becomes script.<key>). You can put one or several scripts in a file.
+good_night:
+  alias: Good night
+  icon: mdi:weather-night
+  sequence:
+    - action: light.turn_off
+      target:
+        entity_id: light.living_room
+    - action: cover.close_cover
+      target:
+        entity_id: cover.living_room_curtain
+  mode: single

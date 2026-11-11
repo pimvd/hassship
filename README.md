@@ -1,8 +1,8 @@
 # hassship
 
-> Ship your Home Assistant dashboards and automations from Git over SSH.
+> Ship your Home Assistant dashboards, automations, scripts and scenes from Git over SSH.
 
-Manage your Home Assistant YAML dashboards and automations as files. Edit them on your Mac
+Manage your Home Assistant YAML dashboards, automations, scripts and scenes as files. Edit them on your Mac
 or PC, check what would change, deploy with one command, and keep everything versioned on
 GitHub.
 
@@ -11,7 +11,7 @@ GitHub.
 - **Atomic uploads:** files go up as a temp file and are renamed, so Home Assistant never sees a half-written file.
 - **Only changed files** are uploaded (sha256 comparison).
 - **Optional backups** of the remote version before overwriting (`--backup`).
-- **Auto reload (optional):** with an access token, automations are reloaded after the config check passes.
+- **Auto reload (optional):** with an access token, what changed (automations, scripts, scenes) is reloaded after the config check passes.
 
 Technical details are in [docs/technical.md](docs/technical.md). This file is the simple guide.
 
@@ -194,29 +194,52 @@ A new dashboard must be registered once in `configuration.yaml`, followed by one
 
 ---
 
-## Deploy automations
+## Deploy automations, scripts and scenes
 
-Automations (YAML files in `automations/`) have their own script:
+Automations, scripts and scenes are YAML files in this project, sent to Home Assistant with
+one script:
+
+| Kind | Folder | Each file contains |
+|---|---|---|
+| Automations | `automations/` | a **list** (`- id: ...`) |
+| Scripts | `ha-scripts/` | a **map** with the script name as key (`my_script:`) |
+| Scenes | `ha-scenes/` | a **list** of scenes |
 
 ```bash
-./deploy-automations.sh --dry-run   # look first
-./deploy-automations.sh --backup    # deploy for real, with a backup
+./deploy-config.sh --dry-run   # look first
+./deploy-config.sh --backup    # deploy for real, with a backup
+./deploy-config.sh scripts     # only one kind (automations, scripts or scenes)
 ```
 
-Every file contains a **list** of automations (start each automation with `- `). See
-`automations/example.yaml.disabled`; rename it to `.yaml` to use it.
+(`./deploy-automations.sh` still works and deploys only the automations.) See the
+`example.yaml.disabled` file in each folder; rename it to `.yaml` to use it.
 
-**One-time:** add this to `configuration.yaml` (and restart Home Assistant once):
+**One-time:** add these lines to `configuration.yaml` (and restart Home Assistant once; deploy
+at least once first, so the folders exist):
 ```yaml
 automation manual: !include_dir_merge_list automations/
+script manual: !include_dir_merge_named ha-scripts/
+scene manual: !include_dir_merge_list ha-scenes/
 ```
-Already have `automation: !include automations.yaml`? Give that one a label too, for example
-`automation ui:`. Automations you create in the UI stay in `automations.yaml` and are never touched.
+Already have `automation: !include automations.yaml` (and the same for `script:` / `scene:`)?
+Give those a label too, for example `automation ui:`, `script ui:` and `scene ui:`.
+
+> **Git owns the files in these three folders.** Edit them as files, not in the Home Assistant
+> UI. A deploy overwrites manual changes on the server, and scripts and scenes loaded from
+> these folders can't be edited in the UI anyway. Things you create in the UI stay in
+> `automations.yaml`, `scripts.yaml` and `scenes.yaml`, which this project never touches.
+
+A file you delete locally stays on Home Assistant, unless you deploy with `--prune` (asks for
+confirmation; combine with `--backup` to keep a copy).
 
 **Automatic reload (optional):** create a *long-lived access token* in Home Assistant
 (profile → Security) and put it in `.env` as `HASS_TOKEN=...`. The script then runs Home
-Assistant's config check and, only if it is valid, reloads the automations. Without a token
-you reload manually via Developer tools → Actions → `automation.reload`.
+Assistant's config check and, only if it is valid, reloads what changed
+(`automation.reload`, `script.reload`, `scene.reload`). Without a token you reload manually via
+Developer tools → Actions.
+
+Already have scripts and scenes in the UI and want to move them into git? See
+[docs/technical.md](docs/technical.md#moving-existing-scripts-and-scenes-into-git).
 
 More details: [docs/technical.md](docs/technical.md).
 

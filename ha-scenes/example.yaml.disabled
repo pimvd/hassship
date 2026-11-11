@@ -1,0 +1,10 @@
+# Example (not active: the file name ends in .disabled).
+# Rename to <name>.yaml to use it. Every file is a LIST of scenes.
+# The entity id comes from the name (scene.cosy_evening); keep `id` unique and unchanged.
+- id: cosy_evening
+  name: Cosy evening
+  entities:
+    light.living_room:
+      state: "on"
+      brightness: 120
+      color_temp_kelvin: 2200

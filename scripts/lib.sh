@@ -28,11 +28,17 @@ load_env() {
   HASS_DASHBOARD_SUBDIR="${HASS_DASHBOARD_SUBDIR:-dashboards}"
   HASS_PROTECTED_DASHBOARD="${HASS_PROTECTED_DASHBOARD:-}"
   HASS_AUTOMATION_SUBDIR="${HASS_AUTOMATION_SUBDIR:-automations}"
+  HASS_SCRIPT_SUBDIR="${HASS_SCRIPT_SUBDIR:-ha-scripts}"
+  HASS_SCENE_SUBDIR="${HASS_SCENE_SUBDIR:-ha-scenes}"
   HASS_TOKEN="${HASS_TOKEN:-}"
   HASS_URL="${HASS_URL:-https://$HASS_HOST}"
   HASS_URL="${HASS_URL%/}"
   [[ "$HASS_AUTOMATION_SUBDIR" =~ ^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$ && "$HASS_AUTOMATION_SUBDIR" != *..* ]] \
     || die "HASS_AUTOMATION_SUBDIR is invalid: '$HASS_AUTOMATION_SUBDIR'"
+  local sub
+  for sub in "$HASS_SCRIPT_SUBDIR" "$HASS_SCENE_SUBDIR"; do
+    [[ "$sub" =~ ^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$ && "$sub" != *..* ]] || die "Invalid subdirectory in .env: '$sub'"
+  done
   [[ "$HASS_PORT" =~ ^[0-9]+$ ]] || die "HASS_PORT must be a number (now: '$HASS_PORT')"
   [[ -f "$HASS_SSH_KEY" ]] || die "SSH key not found: $HASS_SSH_KEY (see README, 'Create an SSH key')"
   # Only safe characters in the subdirectory: prevents path escapes.
@@ -53,7 +59,8 @@ load_env() {
 
 # Run a command on the remote.
 # shellcheck disable=SC2029  # client-side expansion is intended
-rsh() { ssh "${SSH_OPTS[@]}" "$SSH_TARGET" "$@"; }
+# -n: never read stdin, so rsh is safe inside "while read" loops.
+rsh() { ssh -n "${SSH_OPTS[@]}" "$SSH_TARGET" "$@"; }
 
 check_ssh() {
   local err
